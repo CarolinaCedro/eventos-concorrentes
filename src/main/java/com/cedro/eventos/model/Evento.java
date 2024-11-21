@@ -17,6 +17,8 @@ public class Evento {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private String id;
+    private String descricao;
+
     private Integer vagasDisponiveis;
 
     public synchronized boolean temVaga() {

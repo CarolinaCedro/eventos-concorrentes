@@ -1,8 +1,10 @@
 package com.cedro.eventos.model;
 
+import jakarta.persistence.*;
 import lombok.*;
 
-import java.util.Queue;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 @Data
@@ -10,11 +12,26 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 @NoArgsConstructor
 @EqualsAndHashCode
 @ToString
+@Entity
 public class FilaDeEspera {
 
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private String id;
 
-    private int idEvento; // ID do evento associado a esta fila de espera
-    private Queue<Usuario> filaDeEspera = new ConcurrentLinkedQueue<>(); // Fila de espera dos usuários para este evento
+    // Relacionamento com Evento (OneToOne)
+    @OneToOne
+    @JoinColumn(name = "evento_id", referencedColumnName = "id", nullable = false)
+    private Evento evento;
+
+    // Relacionamento com Usuario (ManyToMany ou OneToMany)
+    @ManyToMany
+    @JoinTable(
+            name = "fila_usuarios",
+            joinColumns = @JoinColumn(name = "fila_id"),
+            inverseJoinColumns = @JoinColumn(name = "usuario_id")
+    )
+    private List<Usuario> filaDeEspera = new ArrayList<>();
 
 
     // Adiciona um usuário à fila de espera
@@ -27,11 +44,12 @@ public class FilaDeEspera {
 
     // Remove e retorna o próximo usuário da fila de espera (ou null se a fila estiver vazia)
     public Usuario proximoUsuario() {
-        Usuario usuario = filaDeEspera.poll();
-        if (usuario != null) {
+        if (!filaDeEspera.isEmpty()) {
+            Usuario usuario = filaDeEspera.remove(0);
             usuario.setEmFilaDeEspera(false);
+            return usuario;
         }
-        return usuario;
+        return null;
     }
 
     // Retorna o número de usuários atualmente na fila de espera
@@ -43,5 +61,4 @@ public class FilaDeEspera {
     public boolean estaVazia() {
         return filaDeEspera.isEmpty();
     }
-
 }
