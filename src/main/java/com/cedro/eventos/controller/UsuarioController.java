@@ -3,8 +3,12 @@ package com.cedro.eventos.controller;
 import com.cedro.eventos.model.Usuario;
 import com.cedro.eventos.services.RestServiceAbstractImpl;
 import com.cedro.eventos.services.impl.UsuarioService;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/eventos-concorrentes/user")
@@ -20,4 +24,6 @@ public class UsuarioController extends AbstractController<Usuario> {
     protected RestServiceAbstractImpl<Usuario> getService() {
         return this.service;
     }
+
+
 }

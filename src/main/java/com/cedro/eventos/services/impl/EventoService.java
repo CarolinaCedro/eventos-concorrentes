@@ -6,6 +6,7 @@ import com.cedro.eventos.services.RestServiceAbstractImpl;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -17,16 +18,12 @@ public class EventoService extends RestServiceAbstractImpl<Evento> {
     private final List<String> filaDeEspera = new ArrayList<>();
 
 
-
     private final EventoRepository repository;
 
     public EventoService(EventoRepository repository) {
         this.repository = repository;
 
     }
-
-
-
 
     public synchronized List<Evento> listarEventos() {
         return eventos;
@@ -38,6 +35,14 @@ public class EventoService extends RestServiceAbstractImpl<Evento> {
 
     public synchronized String proximoNaFila() {
         return filaDeEspera.isEmpty() ? null : filaDeEspera.remove(0);
+    }
+
+    public Evento criarEventoMock(String nomeEvento, int vagas) {
+        Evento evento = new Evento();
+        evento.setNome(nomeEvento);
+        evento.setVagasDisponiveis(vagas);
+        evento.setDate(LocalDateTime.now()); // Exemplo: Evento para o dia seguinte
+        return repository.save(evento);
     }
 
 

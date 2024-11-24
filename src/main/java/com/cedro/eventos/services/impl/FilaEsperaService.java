@@ -24,9 +24,6 @@ public class FilaEsperaService extends RestServiceAbstractImpl<FilaDeEspera> {
     }
 
 
-
-
-
     public void entrarNaFila(String usuario) {
         lock.lock();
         try {
