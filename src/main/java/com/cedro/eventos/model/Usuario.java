@@ -5,6 +5,7 @@ import com.cedro.eventos.model.enums.PerfilUser;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Data
@@ -25,9 +26,12 @@ public class Usuario {
     private String telefone;
     private boolean possuiReservaAtiva;
     private boolean emFilaDeEspera;
+    private LocalDateTime tempoNaFila;
 
-    @ManyToMany(mappedBy = "filaDeEspera")
-    private List<FilaDeEspera> filas;
+
+
+//    @ManyToMany(mappedBy = "filaDeEspera")
+//    private List<FilaDeEspera> filas;
 
 }
 

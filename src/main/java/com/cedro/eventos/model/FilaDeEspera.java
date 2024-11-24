@@ -3,6 +3,7 @@ package com.cedro.eventos.model;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -33,14 +34,41 @@ public class FilaDeEspera {
     )
     private List<Usuario> filaDeEspera = new ArrayList<>();
 
+    // Propriedade para rastrear o tempo na fila
+    private LocalDateTime tempoNaFila;
+
 
     // Adiciona um usuário à fila de espera
     public void adicionarUsuario(Usuario usuario) {
         if (usuario != null) {
             usuario.setEmFilaDeEspera(true);
+            usuario.setTempoNaFila(LocalDateTime.now()); // Configura o tempo de entrada na fila
             filaDeEspera.add(usuario);
         }
     }
+
+    public void removerUsuario(Usuario usuario) {
+        if (usuario != null && filaDeEspera.remove(usuario)) {
+            usuario.setEmFilaDeEspera(false);
+        }
+    }
+
+    public List<Usuario> getUsuarios() {
+        return filaDeEspera; // Retorna a lista de usuários
+    }
+
+
+    public Usuario removerProximoUsuario() {
+        if (!filaDeEspera.isEmpty()) {
+            Usuario usuario = filaDeEspera.remove(0); // Remove o primeiro usuário da fila
+            usuario.setEmFilaDeEspera(false); // Atualiza o status do usuário
+            return usuario;
+        }
+        return null; // Retorna null se a fila estiver vazia
+    }
+
+
+
 
     // Remove e retorna o próximo usuário da fila de espera (ou null se a fila estiver vazia)
     public Usuario proximoUsuario() {

@@ -51,7 +51,7 @@ public class ReservaController extends AbstractController<Reserva> {
 
     @GetMapping("/timeout")
     public ResponseEntity<Void> verificarTimeout() {
-        service.verificarTimeouts();
+        service.verificarTimeoutsNaFila();
         return ResponseEntity.ok().build();
     }
 

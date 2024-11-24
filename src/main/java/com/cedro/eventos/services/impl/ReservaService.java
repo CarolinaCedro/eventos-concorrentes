@@ -47,8 +47,8 @@ public class ReservaService extends RestServiceAbstractImpl<Reserva> {
         Evento evento = eventoRepository.findById(eventoId)
                 .orElseThrow(() -> new EntityNotFoundException("Evento não encontrado"));
 
-        // Verificar se há vaga disponível
-        if (!evento.temVaga()) {
+        // Verificar se há vaga disponível e reservar uma
+        if (!evento.reservarVaga()) {
             throw new IllegalStateException("Evento sem vagas disponíveis");
         }
 
@@ -61,7 +61,6 @@ public class ReservaService extends RestServiceAbstractImpl<Reserva> {
         }
 
         Reserva reserva = new Reserva(usuario, evento, LocalDateTime.now());
-        evento.diminuirVaga();
         usuario.setPossuiReservaAtiva(true);
 
         // Salvar dados atualizados
@@ -70,6 +69,7 @@ public class ReservaService extends RestServiceAbstractImpl<Reserva> {
         return repository.save(reserva);
     }
 
+
     public synchronized void cancelarReserva(String reservaId) {
         // Buscar reserva
         Reserva reserva = repository.findById(reservaId)
@@ -77,7 +77,7 @@ public class ReservaService extends RestServiceAbstractImpl<Reserva> {
 
         // Restaurar vaga no evento
         Evento evento = reserva.getEvento();
-        evento.aumentarVaga();
+        evento.liberarVaga();
 
         // Atualizar status do usuário
         Usuario usuario = reserva.getUsuario();
@@ -87,18 +87,46 @@ public class ReservaService extends RestServiceAbstractImpl<Reserva> {
         eventoRepository.save(evento);
         usuarioRepository.save(usuario);
         repository.delete(reserva);
+
+        // Gerenciar fila de espera
+        FilaDeEspera fila = filaEsperaRepository.findByEvento(evento);
+        if (fila != null && !fila.getUsuarios().isEmpty()) {
+            Usuario proximoUsuario = fila.removerProximoUsuario();
+            if (proximoUsuario != null) {
+                proximoUsuario.setPossuiReservaAtiva(true); // Atualiza status do próximo usuário
+                usuarioRepository.save(proximoUsuario); // Salva o status atualizado
+                filaEsperaRepository.save(fila); // Persistir alterações na fila
+            }
+        }
     }
 
 
-    @Scheduled(fixedRate = 60000) // Executa a cada 1 minuto
-    public void verificarTimeouts() {
+
+
+
+
+    @Scheduled(fixedRate = 30000) // Executa a cada 30 segundos
+    public void verificarTimeoutsNaFila() {
+        List<FilaDeEspera> filas = filaEsperaRepository.findAll();
         LocalDateTime agora = LocalDateTime.now();
-        List<Reserva> reservasExpiradas = repository.findAll().stream()
-                .filter(reserva -> reserva.isExpirada(agora))
-                .toList();
 
-        reservasExpiradas.forEach(reserva -> cancelarReserva(reserva.getId()));
+        filas.forEach(fila -> {
+            List<Usuario> expirados = fila.getFilaDeEspera().stream()
+                    .filter(usuario -> usuario.getTempoNaFila() != null &&
+                            usuario.getTempoNaFila().isBefore(agora.minusSeconds(30)))
+                    .toList();
+
+            expirados.forEach(usuario -> {
+                fila.removerUsuario(usuario); // Remove da posição atual
+                usuario.setTempoNaFila(LocalDateTime.now()); // Atualiza o tempo na fila
+                fila.adicionarUsuario(usuario); // Reinsere no final
+            });
+
+            filaEsperaRepository.save(fila); // Salva as mudanças na fila
+        });
     }
+
+
 
 
     public synchronized void entrarNaFila(String eventoId, String usuarioId) {
@@ -109,24 +137,26 @@ public class ReservaService extends RestServiceAbstractImpl<Reserva> {
             throw new IllegalStateException("Usuário já está na fila de espera");
         }
 
-        Optional<Evento> event = this.eventoRepository.findById(eventoId);
+        Evento evento = eventoRepository.findById(eventoId)
+                .orElseThrow(() -> new EntityNotFoundException("Evento não encontrado"));
 
-        if (event.isPresent()) {
-
-            Evento evento = event.get();
-
-
-            FilaDeEspera fila = new FilaDeEspera();
+        // Busca a fila associada ao evento ou cria uma nova fila, se não existir
+        FilaDeEspera fila = filaEsperaRepository.findByEvento(evento);
+        if (fila == null) {
+            fila = new FilaDeEspera();
             fila.setEvento(evento);
-
-
-            fila.adicionarUsuario(usuario);
-            filaEsperaRepository.save(fila);
-
         }
 
+        // Adiciona o usuário à fila
+        usuario.setTempoNaFila(LocalDateTime.now());
+        fila.adicionarUsuario(usuario);
 
+        // Salva a fila e o usuário
+        filaEsperaRepository.save(fila);
+        usuarioRepository.save(usuario);
     }
+
+
 
 
 }

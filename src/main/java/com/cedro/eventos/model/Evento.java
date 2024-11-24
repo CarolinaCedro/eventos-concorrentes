@@ -1,10 +1,9 @@
 package com.cedro.eventos.model;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
+import jakarta.persistence.*;
 import lombok.*;
+
+import java.time.LocalDateTime;
 
 @Data
 @NoArgsConstructor
@@ -17,21 +16,41 @@ public class Evento {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private String id;
-    private String descricao;
+    private String nome;
+    private int vagasDisponiveis;
 
-    private Integer vagasDisponiveis;
+    private LocalDateTime date;
 
-    public synchronized boolean temVaga() {
-        return vagasDisponiveis > 0;
+    public Evento(String nome, int vagas) {
+        this.nome = nome;
+        this.vagasDisponiveis = vagas;
+        this.date = LocalDateTime.now(); // Definindo a data no momento da criação
     }
 
-    public synchronized void diminuirVaga() {
-        if (vagasDisponiveis > 0) {
-            vagasDisponiveis--;
+
+    @PrePersist
+    private void prePersist() {
+        if (this.date == null) {
+            this.date = LocalDateTime.now(); // Definindo a data atual
         }
     }
 
-    public synchronized void aumentarVaga() {
+
+    // Getters e Setters
+    public synchronized boolean reservarVaga() {
+        if (vagasDisponiveis > 0) {
+            vagasDisponiveis--;
+            return true;
+        }
+        return false;
+    }
+
+    public boolean temVagasDisponiveis() {
+        return this.vagasDisponiveis > 0;
+    }
+
+
+    public synchronized void liberarVaga() {
         vagasDisponiveis++;
     }
 
